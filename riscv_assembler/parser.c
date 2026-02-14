@@ -1,45 +1,57 @@
+// parser.c
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
+#include <stdlib.h>
 #include "parser.h"
+#include "riscv_instructions.h"
+#include "instruction_args.h"
 
-/* Returns 1 if parsed successfully, 0 otherwise */
-int parse_line(const char *line, instruction_t *inst)
-{
-    /* or x4, x5, x6 */
-    if (strncmp(line, "or", 2) == 0) {
-        inst->type = INST_R;
-        return sscanf(line, "or x%d , x%d , x%d",
-                      &inst->rd,
-                      &inst->rs1,
-                      &inst->rs2) == 3;
+// Remove the extern declaration of NUM_RV32I_INSTRUCTIONS if it exists
+// and use num_rv32i_instructions instead
+
+static instr_def_t *find_instruction(const char *mnemonic, isa_extension_t isa) {
+    extern instr_def_t rv32i_instructions[];
+    extern size_t num_rv32i_instructions;  // Change from NUM_RV32I_INSTRUCTIONS
+
+    for (size_t i = 0; i < num_rv32i_instructions; i++) {  // Use num_rv32i_instructions
+        if (strcmp(rv32i_instructions[i].mnemonic, mnemonic) == 0 &&
+            rv32i_instructions[i].isa_ext == isa) {
+            return &rv32i_instructions[i];
+        }
+    }
+    return NULL;
+}
+
+int parse_instruction(const char *line, parsed_instruction_t *parsed) {
+    char mnemonic[16];
+    char operands[256];
+
+    // Skip leading whitespace
+    while (isspace(*line)) line++;
+
+    // Extract mnemonic
+    int i = 0;
+    while (*line && !isspace(*line) && i < 15) {
+        mnemonic[i++] = *line++;
+    }
+    mnemonic[i] = '\0';
+
+    // Skip to operands
+    while (isspace(*line)) line++;
+
+    strncpy(operands, line, 255);
+    operands[255] = '\0';
+
+    // Look up instruction in table
+    parsed->def = find_instruction(mnemonic, ISA_RV32I);
+    if (!parsed->def) {
+        return 0; // Instruction not found
     }
 
-    /* lw x6, -4(x9) */
-    if (strncmp(line, "lw", 2) == 0) {
-        inst->type = INST_I;
-        return sscanf(line, "lw x%d , %d(x%d)",
-                      &inst->rd,
-                      &inst->imm,
-                      &inst->rs1) == 3;
-    }
-
-    /* sw x6, 8(x9) */
-    if (strncmp(line, "sw", 2) == 0) {
-        inst->type = INST_S;
-        return sscanf(line, "sw x%d , %d(x%d)",
-                      &inst->rs2,
-                      &inst->imm,
-                      &inst->rs1) == 3;
-    }
-
-    /* beq x4, x4, -4 */
-    if (strncmp(line, "beq", 3) == 0) {
-        inst->type = INST_B;
-        return sscanf(line, "beq x%d , x%d , %d",
-                      &inst->rs1,
-                      &inst->rs2,
-                      &inst->imm) == 3;
-    }
-
-    return 0; /* unknown instruction */
+    // Parse operands if parser function exists
+    if (parsed->def->parser) {
+    return parsed->def->parser(parsed->def, operands, &parsed->args);
+}
+    return 1;
 }
