@@ -1,4 +1,4 @@
-```markdown
+
 # RISC-V Assembler
 
 ## 🧠 Project Description
@@ -8,7 +8,6 @@ Supports word and byte instructions. Designed for learning and experimentation w
 
 ## 🗂 Folder Structure / Files
 
-```
 
 riscv_assembler/
 ├─ main.c            # Entry point of the assembler
@@ -19,8 +18,6 @@ riscv_assembler/
 ├─ encoder.h         # Header for encoder functions
 ├─ instruction_args.h  # Instruction arguments definitions
 ├─ README.md         # This README file
-
-````
 
 - **main.c** – orchestrates reading, parsing, and encoding.  
 - **parser.c / parser.h** – reads `.s` files and breaks instructions into components.  
