@@ -11,20 +11,23 @@ Supports word and byte instructions. Designed for learning and experimentation w
 
 riscv_assembler/
 ├─ main.c            # Entry point of the assembler
+
 ├─ parser.c          # Handles parsing of assembly instructions
+
 ├─ encoder.c         # Converts parsed instructions to machine code
+
 ├─ riscv_instructions.h  # Defines supported RISC-V instructions
+
 ├─ parser.h          # Header for parser functions
+
 ├─ encoder.h         # Header for encoder functions
+
 ├─ instruction_args.h  # Instruction arguments definitions
-├─ README.md         # This README file
 
 - **main.c** – orchestrates reading, parsing, and encoding.  
 - **parser.c / parser.h** – reads `.s` files and breaks instructions into components.  
 - **encoder.c / encoder.h** – generates machine code in hexadecimal format.  
 - **riscv_instructions.h / instruction_args.h** – defines supported instructions and their argument formats.  
-
-## 🧠 README Section (you can copy-paste this)
 
 ## GCC Installation (Windows)  
 This project requires **GCC** to compile the assembler.  
@@ -69,7 +72,3 @@ Run the assembler for **byte instructions**:
 ```powershell
 .\assembler.exe input.s output.hex byte
 ```
-
-```
-
----
