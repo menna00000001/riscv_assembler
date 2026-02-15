@@ -48,22 +48,31 @@ static int parse_dispatch(const instr_def_t *def, const char *line, void *args)
             return sscanf(line,"x%d, x%d, x%d", &a->rd, &a->rs1, &a->rs2);
 
         case TYPE_I:
-            return sscanf(line,"x%d, x%d, %d", &a->rd, &a->rs1, &a->imm);
+            if (def->opcode == 0x03) { /* Load instructions */
+                /* Format: rd, offset(rs1) */
+                return sscanf(line,"x%d, %i(x%d)",&a->rd, &a->imm, &a->rs1);
+            } else if (def->opcode == 0x13 || def->opcode == 0x1B) { /* ALU immediate */
+                /* Format: rd, rs1, imm */
+                return sscanf(line,"x%d, x%d, %i", &a->rd, &a->rs1, &a->imm);
+            } else if (def->opcode == 0x67) { /* JALR */
+                /* Format: rd, offset(rs1) */
+                return sscanf(line,"x%d, %i(x%d)", &a->rd, &a->imm, &a->rs1);
+            }
 
         case TYPE_I7:
-            return sscanf(line,"x%d, x%d, %d", &a->rd, &a->rs1, &a->shamt);
+            return sscanf(line,"x%d, x%d, %i", &a->rd, &a->rs1, &a->shamt);
 
         case TYPE_S:
-            return sscanf(line,"x%d, %d(x%d)", &a->rs2, &a->imm, &a->rs1);
+            return sscanf(line,"x%d, %i(x%d)", &a->rs2, &a->imm, &a->rs1);
 
         case TYPE_B:
-            return sscanf(line,"x%d, x%d, %d", &a->rs1, &a->rs2, &a->imm);
+            return sscanf(line,"x%d, x%d, %i", &a->rs1, &a->rs2, &a->imm);
 
         case TYPE_U:
-            return sscanf(line, "x%d, %d", &a->rd, &a->imm);
+            return sscanf(line, "x%d, %i", &a->rd, &a->imm);
 
         case TYPE_J:
-            return sscanf(line, "x%d, %d", &a->rd, &a->imm);
+            return sscanf(line, "x%d, %i", &a->rd, &a->imm);
 
         default:
             return 0;
@@ -115,13 +124,13 @@ instr_def_t rv32i_instructions[] = {
     /* ---------------- B-Type ---------------- */
     {"beq",  TYPE_B, 0x63, 0x0, 0x00, 0, ISA_RV32I, encode_dispatch, parse_dispatch}, // branch if =
     {"bne",  TYPE_B, 0x63, 0x1, 0x00, 0, ISA_RV32I, encode_dispatch, parse_dispatch}, // branch if !=
-    {"blt",  TYPE_B, 0x63, 0x2, 0x00, 0, ISA_RV32I, encode_dispatch, parse_dispatch}, // branch if <
-    {"bge",  TYPE_B, 0x63, 0x3, 0x00, 0, ISA_RV32I, encode_dispatch, parse_dispatch}, // branch if >=
-    {"bltu",  TYPE_B, 0x63, 0x4, 0x00, 0, ISA_RV32I, encode_dispatch, parse_dispatch}, // branch if < unsigned
-    {"bgeu",  TYPE_B, 0x63, 0x5, 0x00, 0, ISA_RV32I, encode_dispatch, parse_dispatch}, // branch if >= unsigned
+    {"blt",  TYPE_B, 0x63, 0x4, 0x00, 0, ISA_RV32I, encode_dispatch, parse_dispatch}, // branch if <
+    {"bge",  TYPE_B, 0x63, 0x5, 0x00, 0, ISA_RV32I, encode_dispatch, parse_dispatch}, // branch if >=
+    {"bltu",  TYPE_B, 0x63, 0x6, 0x00, 0, ISA_RV32I, encode_dispatch, parse_dispatch}, // branch if < unsigned
+    {"bgeu",  TYPE_B, 0x63, 0x7, 0x00, 0, ISA_RV32I, encode_dispatch, parse_dispatch}, // branch if >= unsigned
 
     /* ---------------- U-Type ---------------- */
-    {"lui",  TYPE_U, 0x37, 0x0, 0x00, 0, ISA_RV32I, encode_dispatch, parse_dispatch},
+    {"lui",  TYPE_U, 0x37, 0x0, 0x00, 0, ISA_RV32I, encode_dispatch, parse_dispatch}, // load upper immediate
     {"auipc",  TYPE_U, 0x17, 0x0, 0x00, 0, ISA_RV32I, encode_dispatch, parse_dispatch}, // add upper immediate to PC
 
     /* ---------------- J-Type ---------------- */

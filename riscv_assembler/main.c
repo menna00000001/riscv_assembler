@@ -185,29 +185,24 @@ int parse_operands(const char *operands, instr_def_t *def, instr_args_t *args) {
         case TYPE_I:
             if (def->opcode == 0x03) { /* Load instructions */
                 /* Format: rd, offset(rs1) */
-                if (sscanf(format, "x%d, %i(x%d)",
-                           &args->rd, &args->imm, &args->rs1) == 3) return 1;
-            } else if (def->opcode == 0x13) { /* ALU immediate */
+                if (sscanf(format, "x%d, %i(x%d)", &args->rd, &args->imm, &args->rs1) == 3) return 1;
+            } else if (def->opcode == 0x13 || def->opcode == 0x1B) { /* ALU immediate */
                 /* Format: rd, rs1, imm */
-                if (sscanf(format, "x%d, x%d, %i",
-                           &args->rd, &args->rs1, &args->imm) == 3) return 1;
+                if (sscanf(format, "x%d, x%d, %i", &args->rd, &args->rs1, &args->imm) == 3) return 1;
             } else if (def->opcode == 0x67) { /* JALR */
                 /* Format: rd, rs1, offset */
-                if (sscanf(format, "x%d, x%d, %i",
-                           &args->rd, &args->rs1, &args->imm) == 3) return 1;
+                if (sscanf(format, "x%d, %i(x%d)", &args->rd, &args->imm, &args->rs1) == 3) return 1;
             }
             break;
 
         case TYPE_I7:  /* Shift Immediate with funct7 */
             /* Format: rd, rs1, shamt */
-            if (sscanf(format, "x%d, x%d, %i",
-                       &args->rd, &args->rs1, &args->shamt) == 3) return 1;
+            if (sscanf(format, "x%d, x%d, %i", &args->rd, &args->rs1, &args->shamt) == 3) return 1;
             break;
 
         case TYPE_S:
             /* Format: rs2, offset(rs1) */
-            if (sscanf(format, "x%d, %i(x%d)",
-                       &args->rs2, &args->imm, &args->rs1) == 3) return 1;
+            if (sscanf(format, "x%d, %i(x%d)", &args->rs2, &args->imm, &args->rs1) == 3) return 1;
             break;
 
         case TYPE_B:

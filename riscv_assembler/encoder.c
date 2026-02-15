@@ -69,7 +69,7 @@ uint32_t encode_B(int imm, int rs2, int rs1, int funct3, int opcode)
 // imm[31:12] | rd[11:7] | opcode[6:0]
 uint32_t encode_U(int imm, int rd, int opcode)
 {
-    return ((imm & 0xFFFFF000)) |  // upper 20 bits go into [31:12]
+    return ((imm & 0xFFFFF) << 12) |  // upper 20 bits go into [31:12]
            ((rd  & 0x1F) << 7)   |
            (opcode & 0x7F);
 }
