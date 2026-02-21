@@ -6,6 +6,7 @@ This is a **modular RISC-V assembler** written in C.
 
 * Reads RISC-V assembly files (`.s`) and outputs machine code in **hex format**.
 * Supports **RV32I** and **RV64I** base ISA.
+* Supports some ZICSR system instructions (e.g., `ecall`, `ebreak`, `mret`, CSR access like `csrrw`, `csrrs`, `csrrc`).
 * Supports **label resolution** for **B-type** (branches) and **J-type** (jumps) instructions.
 * Supports both **word (32-bit)** and **byte (8-bit)** output modes.
 * Designed as a **modular system**: parser, encoder, and instruction definitions are separate, making it easy to **extend to new ISAs or instructions**.
@@ -16,11 +17,15 @@ This is a **modular RISC-V assembler** written in C.
 
 ```
 riscv_assembler/
-├─ main.c                 # Entry point: orchestrates parsing and encoding
-├─ parser.c / parser.h    # Breaks instructions into components and resolves labels
-├─ encoder.c / encoder.h  # Converts parsed instructions into machine code
-├─ riscv_instructions.c / .h  # Defines supported RISC-V instructions and encoders
-├─ instruction_args.h     # Defines instruction argument structures
+├─ main.c                   # Entry point: orchestrates parsing, encoding, and output of machine code
+├─ parser.c / parser.h      # Breaks instructions into components, resolves labels, and prepares arguments
+├─ encoder.c / encoder.h    # Converts parsed instructions into binary machine code
+├─ riscv_instructions.c / .h  # Contains definitions of supported RISC-V instructions and associated encoders/parsers
+├─ instruction_args.h       # Defines structures for instruction arguments (rd, rs1, rs2, imm, shamt, etc.)
+├─ instruction_defs.h       # Defines instruction formats, ISA extensions, and instr_def_t:
+│                             - instr_format_t: R/I/S/B/U/J/… formats
+│                             - isa_extension_t: base and optional extensions (ZICSR, M, F, D, C, V)
+│                             - instr_def_t: holds opcode, funct3/funct7/funct12, ISA, and pointers to encoder/parser functions
 ```
 
 **Highlights:**
@@ -30,19 +35,21 @@ riscv_assembler/
 * `encoder.c / encoder.h` – encodes instructions into 32-bit machine code.
 * `riscv_instructions.c / .h` – defines supported instructions, formats, and their parser/encoder functions.
 * `instruction_args.h` – holds instruction argument structures (`rd`, `rs1`, `imm`, etc.).
+* `instruction_defs.h` – contains all instruction metadata, including formats, ISA extensions, and pointers to parsing/encoding functions.
 
 ---
 
 ## ⚙ Features
 
-| Feature           | Details                                                              |
-| ----------------- | -------------------------------------------------------------------- |
-| Supported ISAs    | RV32I, RV64I                                                         |
-| Instruction types | R, I, I7, S, B, U, J                                                 |
-| Label support     | B-type (`beq`, `bne`, etc.) and J-type (`jal`) instructions          |
-| Output modes      | Word (32-bit) or Byte (8-bit) hex                                    |
-| Modular design    | Parser, encoder, instruction definitions are separate and extensible |
-| Comments          | Lines starting with `#` are ignored                                  |
+| Feature                   | Details                                                                               |
+| ------------------------- | ------------------------------------------------------------------------------------- |
+| Supported ISAs            | RV32I, RV64I                                                                          |
+| Instruction types         | R, I, I7, S, B, U, J                                                                  |
+| System / CSR instructions | Supports some ZICSR instructions: `ecall`, `ebreak`, `mret`, `csrrw`, `csrrs`, `csrrc`|
+| Label support             | B-type (`beq`, `bne`, etc.) and J-type (`jal`) instructions                           |
+| Output modes              | Word (32-bit) or Byte (8-bit) hex                                                     |
+| Modular design            | Parser, encoder, instruction definitions are separate and extensible                  |
+| Comments                  | Lines starting with `#` are ignored                                                   |
 
 ---
 
@@ -135,15 +142,5 @@ FF5FF06F
 02A00193
 ```
 
-**Explanation:**
-
-1. `addi x1, x0, 5` → `00500093`
-2. `addi x2, x0, 10` → `00A00113`
-3. `beq x1, x2, end` → `00208663` (offset calculated relative to PC)
-4. `addi x1, x1, 1` → `00108093`
-5. `jal x0, loop_start` → `FF5FF06F` (backward jump, offset = loop_start - current PC)
-6. `addi x3, x0, 42` → `02A00193`
-
-> ✅ Labels are resolved automatically for **B-type** and **J-type** instructions.
 
 ---
