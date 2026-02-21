@@ -1,47 +1,77 @@
-
 # RISC-V Assembler
 
 ## 🧠 Project Description
-This is a simple **RISC-V assembler** written in C.  
-It reads assembly code (`.s` files) and outputs machine code in **hex format**.  
-Supports word and byte instructions. Designed for learning and experimentation with the RISC-V ISA.
+
+This is a **modular RISC-V assembler** written in C.
+
+* Reads RISC-V assembly files (`.s`) and outputs machine code in **hex format**.
+* Supports **RV32I** and **RV64I** base ISA.
+* Supports **label resolution** for **B-type** (branches) and **J-type** (jumps) instructions.
+* Supports both **word (32-bit)** and **byte (8-bit)** output modes.
+* Designed as a **modular system**: parser, encoder, and instruction definitions are separate, making it easy to **extend to new ISAs or instructions**.
+
+---
 
 ## 🗂 Folder Structure / Files
 
-
+```
 riscv_assembler/
-├─ main.c            # Entry point of the assembler
+├─ main.c                 # Entry point: orchestrates parsing and encoding
+├─ parser.c / parser.h    # Breaks instructions into components and resolves labels
+├─ encoder.c / encoder.h  # Converts parsed instructions into machine code
+├─ riscv_instructions.c / .h  # Defines supported RISC-V instructions and encoders
+├─ instruction_args.h     # Defines instruction argument structures
+```
 
-├─ parser.c          # Handles parsing of assembly instructions
+**Highlights:**
 
-├─ encoder.c         # Converts parsed instructions to machine code
+* `main.c` – manages reading input `.s` files, calling the parser and encoder, and writing `.hex` output.
+* `parser.c / parser.h` – parses instruction lines, extracts mnemonics and operands, resolves labels.
+* `encoder.c / encoder.h` – encodes instructions into 32-bit machine code.
+* `riscv_instructions.c / .h` – defines supported instructions, formats, and their parser/encoder functions.
+* `instruction_args.h` – holds instruction argument structures (`rd`, `rs1`, `imm`, etc.).
 
-├─ riscv_instructions.h  # Defines supported RISC-V instructions
+---
 
-├─ parser.h          # Header for parser functions
+## ⚙ Features
 
-├─ encoder.h         # Header for encoder functions
+| Feature           | Details                                                              |
+| ----------------- | -------------------------------------------------------------------- |
+| Supported ISAs    | RV32I, RV64I                                                         |
+| Instruction types | R, I, I7, S, B, U, J                                                 |
+| Label support     | B-type (`beq`, `bne`, etc.) and J-type (`jal`) instructions          |
+| Output modes      | Word (32-bit) or Byte (8-bit) hex                                    |
+| Modular design    | Parser, encoder, instruction definitions are separate and extensible |
+| Comments          | Lines starting with `#` are ignored                                  |
 
-├─ instruction_args.h  # Instruction arguments definitions
+---
 
-- **main.c** – orchestrates reading, parsing, and encoding.  
-- **parser.c / parser.h** – reads `.s` files and breaks instructions into components.  
-- **encoder.c / encoder.h** – generates machine code in hexadecimal format.  
-- **riscv_instructions.h / instruction_args.h** – defines supported instructions and their argument formats.  
+## 🏗 Modular Design
 
-## GCC Installation (Windows)  
-This project requires **GCC** to compile the assembler.  
+The assembler is structured so that you can:
 
-### Recommended Method: MSYS2  
-1. Download MSYS2 from: [https://www.msys2.org](https://www.msys2.org)  
-2. Install MSYS2 (default path: `C:\msys64`)  
-3. Open **MSYS2 MinGW64** terminal (not MSYS)  
-4. Install GCC:   
-```bash    
+* **Add new instructions**: just define their encoder, parser, and entry in the instruction table.
+* **Add new ISA extensions**: RV32M, RV32F, RV64M, etc., without changing the main assembler loop.
+* **Change output formats**: currently supports word and byte hex, can be extended for binary or other formats.
+
+---
+
+## 💻 GCC Installation (Windows)
+
+This project requires **GCC** to compile the assembler.
+
+### Recommended Method: MSYS2
+
+1. Download MSYS2: [https://www.msys2.org](https://www.msys2.org)
+2. Install MSYS2 (default path: `C:\msys64`)
+3. Open **MSYS2 MinGW64** terminal (not MSYS)
+4. Install GCC:
+
+```bash
 pacman -S --needed base-devel mingw-w64-x86_64-gcc
-````
+```
 
-5. Add GCC to PATH:
+5. Add GCC to `PATH`:
 
 ```text
 C:\msys64\mingw64\bin
@@ -53,22 +83,67 @@ C:\msys64\mingw64\bin
 gcc --version
 ```
 
-## How to run the assembler
+---
+
+## 🏃 How to Run the Assembler
 
 Compile the project:
 
 ```powershell
-gcc main.c parser.c encoder.c -o assembler
+gcc main.c parser.c encoder.c riscv_instructions.c -o assembler
 ```
 
-Run the assembler for **word instructions**:
+Run the assembler for **word output**:
 
 ```powershell
 .\assembler.exe input.s output.hex word
 ```
 
-Run the assembler for **byte instructions**:
+Run the assembler for **byte output**:
 
 ```powershell
 .\assembler.exe input.s output.hex byte
 ```
+
+---
+
+## 📝 Example Assembly (`input.s`)
+
+```asm
+# Example demonstrating labels, jumps, and backward offsets
+
+    addi x1, x0, 5        # x1 = 5
+    addi x2, x0, 10       # x2 = 10
+
+loop_start:
+    beq x1, x2, end       # Branch if x1 == x2
+    addi x1, x1, 1        # Increment x1
+    jal x0, loop_start    # Jump back to loop_start
+
+end:
+    addi x3, x0, 42       # End value
+```
+
+### Expected Word Output (`output.hex`)
+
+```
+00500093
+00A00113
+00208663
+00108093
+FF5FF06F
+02A00193
+```
+
+**Explanation:**
+
+1. `addi x1, x0, 5` → `00500093`
+2. `addi x2, x0, 10` → `00A00113`
+3. `beq x1, x2, end` → `00208663` (offset calculated relative to PC)
+4. `addi x1, x1, 1` → `00108093`
+5. `jal x0, loop_start` → `FF5FF06F` (backward jump, offset = loop_start - current PC)
+6. `addi x3, x0, 42` → `02A00193`
+
+> ✅ Labels are resolved automatically for **B-type** and **J-type** instructions.
+
+---

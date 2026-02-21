@@ -18,6 +18,7 @@ typedef struct {
     int rd, rs1, rs2;
     int imm;
     int shamt;
+    uint32_t current_pc;
 } instruction_t;
 
 typedef struct {

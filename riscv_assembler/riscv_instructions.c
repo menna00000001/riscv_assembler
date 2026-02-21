@@ -5,6 +5,8 @@
 #include <string.h>
 #include <stdio.h>
 
+extern int find_label(const char *name, uint32_t *address);
+
 // ==================== ENCODING FUNCTIONS ====================
 static uint32_t encode_dispatch(const instr_def_t *def, const void *args) {
     const instr_args_t *a = (const instr_args_t *)args;
@@ -56,7 +58,8 @@ static int parse_dispatch(const instr_def_t *def, const char *line, void *args)
                 return sscanf(line,"x%d, x%d, %i", &a->rd, &a->rs1, &a->imm);
             } else if (def->opcode == 0x67) { /* JALR */
                 /* Format: rd, offset(rs1) */
-                return sscanf(line,"x%d, %i(x%d)", &a->rd, &a->imm, &a->rs1);
+                // Immediate number
+                return sscanf(line, "x%d, %i(x%d)", &a->rd, &a->imm, &a->rs1);
             }
 
         case TYPE_I7:
@@ -65,14 +68,75 @@ static int parse_dispatch(const instr_def_t *def, const char *line, void *args)
         case TYPE_S:
             return sscanf(line,"x%d, %i(x%d)", &a->rs2, &a->imm, &a->rs1);
 
-        case TYPE_B:
-            return sscanf(line,"x%d, x%d, %i", &a->rs1, &a->rs2, &a->imm);
+        case TYPE_B: {
+            char label[64];
+
+            if (sscanf(line,"x%d, x%d, %i",&a->rs1, &a->rs2, &a->imm) == 3)
+                return 1;
+
+            if (sscanf(line,"x%d, x%d, %63s",&a->rs1, &a->rs2, label) == 3) {
+
+            uint32_t target;
+
+            if (!find_label(label, &target)) {
+                printf("Unknown label: %s\n", label);
+                return 0;
+            }
+
+            a->imm = (int32_t)target - (int32_t)a->current_pc;
+
+            if (a->imm % 2 != 0) {
+                printf("Unaligned branch target\n");
+                return 0;
+            }
+
+            if (a->imm < -4096 || a->imm > 4094) {
+                printf("Branch offset out of range\n");
+                return 0;
+            }
+
+            return 1;
+        }
+
+        return 0;
+        }
 
         case TYPE_U:
             return sscanf(line, "x%d, %i", &a->rd, &a->imm);
 
-        case TYPE_J:
-            return sscanf(line, "x%d, %i", &a->rd, &a->imm);
+        case TYPE_J: {
+            char label_name[64];
+
+            // Immediate number
+            if (sscanf(line, "x%d, %i", &a->rd, &a->imm) == 2)
+                return 1;
+
+            // Label target
+            if (sscanf(line, "x%d, %63s", &a->rd, label_name) == 2) {
+                uint32_t target_addr;
+                if (!find_label(label_name, &target_addr)) {
+                    printf("Unknown label: %s\n", label_name);
+                        return 0;
+                    }
+
+        a->imm = (int32_t)target_addr - (int32_t)a->current_pc;
+
+        // Check alignment
+        if (a->imm % 2 != 0) {
+            printf("Unaligned jump target\n");
+            return 0;
+        }
+
+        if (a->imm < -1048576 || a->imm > 1048574) {
+            printf("Jump offset out of range\n");
+            return 0;
+        }
+
+        return 1;
+    }
+
+    return 0;
+}
 
         default:
             return 0;

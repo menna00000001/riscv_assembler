@@ -8,6 +8,7 @@ typedef struct {
     int rs2;
     int imm;
     int shamt;     // Shift amount for immediate shifts
+    int current_pc;
 } instr_args_t;
 
 #endif
