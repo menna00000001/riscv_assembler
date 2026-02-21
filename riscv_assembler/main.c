@@ -169,6 +169,13 @@ instr_def_t *find_instruction(const char *mnemonic) {
         if (strcmp(rv64i_instructions[i].mnemonic, mnemonic) == 0)
             return &rv64i_instructions[i];
 
+    extern instr_def_t zicsr_instructions[];
+    extern size_t num_zicsr_instructions;
+
+    for (size_t i = 0; i < num_zicsr_instructions; i++)
+        if (strcmp(zicsr_instructions[i].mnemonic, mnemonic) == 0)
+            return &zicsr_instructions[i];
+
     return NULL; // Not found
 }
 
@@ -182,109 +189,3 @@ int find_label(const char *name, uint32_t *address) {
     }
     return 0;
 }
-
-/* ---------------------- Parse operands ----------------------
-int parse_operands(const char *operands, instr_def_t *def, instr_args_t *args) {
-    char format[128];
-    strncpy(format, operands, sizeof(format)-1);
-    format[sizeof(format)-1] = '\0';
-
-    switch (def->format) {
-        case TYPE_R:
-            if (sscanf(format, "x%d, x%d, x%d",
-                       &args->rd, &args->rs1, &args->rs2) == 3)
-                return 1;
-            break;
-
-        case TYPE_I:
-            if (def->opcode == 0x03) {
-                if (sscanf(format, "x%d, %i(x%d)", &args->rd, &args->imm, &args->rs1) == 3) return 1;
-            } else if (def->opcode == 0x13 || def->opcode == 0x1B) {
-                if (sscanf(format, "x%d, x%d, %i", &args->rd, &args->rs1, &args->imm) == 3) return 1;
-            } else if (def->opcode == 0x67) {
-                if (sscanf(format, "x%d, %i(x%d)", &args->rd, &args->imm, &args->rs1) == 3) return 1;
-            }
-            break;
-
-        case TYPE_I7:
-            if (sscanf(format, "x%d, x%d, %i", &args->rd, &args->rs1, &args->shamt) == 3) return 1;
-            break;
-
-        case TYPE_S:
-            if (sscanf(format, "x%d, %i(x%d)", &args->rs2, &args->imm, &args->rs1) == 3) return 1;
-            break;
-
-        case TYPE_B: {
-            char label_name[64];
-
-            if (sscanf(format, "x%d, x%d, %i", &args->rs1, &args->rs2, &args->imm) == 3)
-                return 1;
-
-            if (sscanf(format, "x%d, x%d, %63s", &args->rs1, &args->rs2, label_name) == 3) {
-
-            uint32_t target_addr;
-
-            if (!find_label(label_name, &target_addr)) {
-                printf("Unknown label: %s\n", label_name);
-                return 0;
-            }
-
-            args->imm = (int32_t)target_addr - (int32_t)args->current_pc;
-
-            if (args->imm % 2 != 0) {
-                printf("Unaligned branch target\n");
-                return 0;
-            }
-
-            if (args->imm < -4096 || args->imm > 4094) {
-                printf("Branch offset out of range\n");
-                return 0;
-            }
-
-            return 1;
-        }
-        break;
-        }
-
-        case TYPE_U:
-            if (sscanf(format, "x%d, %i", &args->rd, &args->imm) == 2) return 1;
-            break;
-
-        case TYPE_J: {
-            char label_name[64];
-
-            if (sscanf(format, "x%d, %i", &args->rd, &args->imm) == 2)
-                return 1;
-
-            if (sscanf(format, "x%d, %63s", &args->rd, label_name) == 2) {
-
-            uint32_t target_addr;
-
-            if (!find_label(label_name, &target_addr)) {
-                printf("Unknown label: %s\n", label_name);
-                return 0;
-            }
-
-            args->imm = (int32_t)target_addr - (int32_t)args->current_pc;
-
-            if (args->imm % 2 != 0) {
-                printf("Unaligned jump target\n");
-                return 0;
-            }
-
-            if (args->imm < -1048576 || args->imm > 1048574) {
-                printf("Jump offset out of range\n");
-                return 0;
-            }
-
-            return 1;
-            }
-        break;
-        }
-
-        default:
-            break;
-    }
-
-    return 0;
-}*/

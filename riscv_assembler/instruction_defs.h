@@ -18,13 +18,14 @@ typedef enum {
 } instr_format_t;
 
 typedef enum {
-    ISA_RV32I,
-    ISA_RV64I,
-    ISA_RV32M,  // Multiplication
-    ISA_RV32F,  // Float
-    ISA_RV32D,  // Double
-    ISA_RV32C,  // Compressed
-    ISA_RV32V   // Vector
+    ISA_RV32I,      // Base ISA
+    ISA_RV64I,      // Base ISA
+    ISA_EXT_ZICSR,  // Control and Status Registers
+    ISA_EXT_M,      // Multiply/Divide
+    ISA_EXT_F,      // Single-precision float
+    ISA_EXT_D,      // Double-precision float
+    ISA_EXT_C,      // Compressed
+    ISA_EXT_V,      // Vector
 } isa_extension_t;
 
 typedef struct instr_def_t instr_def_t; // forward declaration for self-pointer
@@ -40,7 +41,8 @@ struct instr_def_t {
     uint8_t opcode;            // Base opcode
     uint8_t funct3;            // funct3 field (if applicable)
     uint8_t funct7;            // funct7 field (if applicable)
-    uint8_t funct2;            // For R4 format
+    //uint8_t funct2;            // For R4 format
+    uint16_t funct12;          // for SYSTEM instructions only
     isa_extension_t isa_ext;   // Which ISA extension this belongs to
     uint32_t (*encoder)(const instr_def_t *, const void *);
     int      (*parser)(const instr_def_t *, const char *, void *);

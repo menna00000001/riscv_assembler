@@ -47,19 +47,35 @@ static int parse_dispatch(const instr_def_t *def, const char *line, void *args)
     switch (def->format) {
 
         case TYPE_R:
+            // Normal R-Type
             return sscanf(line,"x%d, x%d, x%d", &a->rd, &a->rs1, &a->rs2);
 
-        case TYPE_I:
+        case TYPE_I:{
             if (def->opcode == 0x03) { /* Load instructions */
                 /* Format: rd, offset(rs1) */
                 return sscanf(line,"x%d, %i(x%d)",&a->rd, &a->imm, &a->rs1);
-            } else if (def->opcode == 0x13 || def->opcode == 0x1B) { /* ALU immediate */
+            } else if (def->opcode == 0x13 || def->opcode == 0x1B || def->opcode == 0x67) { /* ALU immediate & JALR */
                 /* Format: rd, rs1, imm */
                 return sscanf(line,"x%d, x%d, %i", &a->rd, &a->rs1, &a->imm);
-            } else if (def->opcode == 0x67) { /* JALR */
-                /* Format: rd, offset(rs1) */
-                // Immediate number
-                return sscanf(line, "x%d, %i(x%d)", &a->rd, &a->imm, &a->rs1);
+            }
+            // ZICSR //
+            else if (def->opcode == 0x73 && def->funct3 == 0) {   // SYSTEM
+                // ecall / ebreak / mret
+                a->rd  = 0;           // always zero
+                a->rs1 = 0;           // always zero
+                a->imm = def->funct12; // imm = funct12
+                return 1;
+                }
+            else if (def->funct3 == 1 || def->funct3 == 2 || def->funct3 == 3) {
+                    // CSR register form
+                    // csrrw rd,offset,rs1                       //csr
+                    return sscanf(line, "x%d, %i, x%d", &a->rd, &a->imm, &a->rs1);
+                }
+            else if (def->funct3 == 5 || def->funct3 == 6 || def->funct3 == 7) {
+                    // CSR immediate form
+                    // csrrwi rd,offset,uimm                   //csr     //uimm
+                    return sscanf(line, "x%d, %i, %d", &a->rd, &a->imm, &a->rs1);
+                }
             }
 
         case TYPE_I7:
@@ -225,9 +241,25 @@ instr_def_t rv64i_instructions[] = {
 
 
 };
-
+// Zicsr Extension (not complete)
+instr_def_t zicsr_instructions[] = {
+    // ecall / ebreak / mret
+    {"ecall",  TYPE_I, 0x73, 0x0, 0x00, 0, ISA_EXT_ZICSR, encode_dispatch, parse_dispatch},
+    {"ebreak", TYPE_I, 0x73, 0x0, 0x00, 0b000000000001, ISA_EXT_ZICSR, encode_dispatch, parse_dispatch},
+    {"mret",   TYPE_I, 0x73, 0x0, 0x18, 0b001100000010, ISA_EXT_ZICSR, encode_dispatch, parse_dispatch},
+    // CSR register form
+    {"csrrw",   TYPE_I, 0x73, 0x1, 0x00, 0, ISA_EXT_ZICSR, encode_dispatch, parse_dispatch},
+    {"csrrs",   TYPE_I, 0x73, 0x2, 0x00, 0, ISA_EXT_ZICSR, encode_dispatch, parse_dispatch},
+    {"csrrc",   TYPE_I, 0x73, 0x3, 0x00, 0, ISA_EXT_ZICSR, encode_dispatch, parse_dispatch},
+    // CSR immediate form
+    {"csrrwi",   TYPE_I, 0x73, 0x5, 0x00, 0, ISA_EXT_ZICSR, encode_dispatch, parse_dispatch},
+    {"csrrsi",   TYPE_I, 0x73, 0x6, 0x00, 0, ISA_EXT_ZICSR, encode_dispatch, parse_dispatch},
+    {"csrrci",   TYPE_I, 0x73, 0x7, 0x00, 0, ISA_EXT_ZICSR, encode_dispatch, parse_dispatch},
+};
 
 size_t num_rv32i_instructions = sizeof(rv32i_instructions) / sizeof(rv32i_instructions[0]);
 size_t num_rv64i_instructions = sizeof(rv64i_instructions)/sizeof(rv64i_instructions[0]);
+size_t num_zicsr_instructions = sizeof(zicsr_instructions)/sizeof(zicsr_instructions[0]);
 #define NUM_RV32I_INSTRUCTIONS (sizeof(rv32i_instructions) / sizeof(rv32i_instructions[0]))
 #define NUM_RV64I_INSTRUCTIONS (sizeof(rv64i_instructions) / sizeof(rv64i_instructions[0]))
+#define NUM_ZICSR_INSTRUCTIONS = sizeof(zicsr_instructions)/sizeof(zicsr_instructions[0]);
