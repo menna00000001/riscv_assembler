@@ -12,6 +12,10 @@ extern size_t num_rv32i_instructions;
 extern instr_def_t rv64i_instructions[];
 extern size_t num_rv64i_instructions;
 
+// M extension
+extern instr_def_t m_instructions[];
+extern size_t num_m_instructions;
+
 // Zicsr extension
 extern instr_def_t zicsr_instructions[];
 extern size_t num_zicsr_instructions;

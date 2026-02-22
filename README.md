@@ -6,7 +6,8 @@ This is a **modular RISC-V assembler** written in C.
 
 * Reads RISC-V assembly files (`.s`) and outputs machine code in **hex format**.
 * Supports **RV32I** and **RV64I** base ISA.
-* Supports some ZICSR system instructions (e.g., `ecall`, `ebreak`, `mret`, CSR access like `csrrw`, `csrrs`, `csrrc`).
+* Supports ZICSR system instructions (e.g., `ecall`, `ebreak`, `mret`, CSR access like `csrrw`, `csrrs`, `csrrc`, including both numeric CSR addresses and CSR symbolic names such as `mtvec`, `mepc`, `mcause`, `mtval`).
+* Supports the RISC-V M extension (integer multiplication and division instructions).
 * Supports **label resolution** for **B-type** (branches) and **J-type** (jumps) instructions.
 * Supports both **word (32-bit)** and **byte (8-bit)** output modes.
 * Designed as a **modular system**: parser, encoder, and instruction definitions are separate, making it easy to **extend to new ISAs or instructions**.
@@ -45,7 +46,9 @@ riscv_assembler/
 | ------------------------- | ------------------------------------------------------------------------------------- |
 | Supported ISAs            | RV32I, RV64I                                                                          |
 | Instruction types         | R, I, I7, S, B, U, J                                                                  |
-| System / CSR instructions | Supports some ZICSR instructions: `ecall`, `ebreak`, `mret`, `csrrw`, `csrrs`, `csrrc`|
+| M Extension               | Supports integer multiplication/division instructions (`mul`, `mulh`, `div`, `rem`, etc.) |
+| CSR Addressing            | Supports both numeric CSR addresses (e.g., `0x305`) and symbolic CSR names (`mtvec`, `mepc`, etc.) |
+| Endianness                | Outputs machine code in little-endian byte order (RISC-V standard) |
 | Label support             | B-type (`beq`, `bne`, etc.) and J-type (`jal`) instructions                           |
 | Output modes              | Word (32-bit) or Byte (8-bit) hex                                                     |
 | Modular design            | Parser, encoder, instruction definitions are separate and extensible                  |

@@ -32,8 +32,6 @@ typedef struct instr_def_t instr_def_t; // forward declaration for self-pointer
 int parse_operands(const char *operands,
                    instr_def_t *def,
                    instr_args_t *args);
-//typedef uint32_t (*encoder_fn_t)(const instr_def_t *def, const void *args);
-//typedef int      (*parser_fn_t)(const instr_def_t *def, const char *line, void *args);
 
 struct instr_def_t {
     const char *mnemonic;      // Instruction name

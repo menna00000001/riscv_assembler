@@ -169,6 +169,13 @@ instr_def_t *find_instruction(const char *mnemonic) {
         if (strcmp(rv64i_instructions[i].mnemonic, mnemonic) == 0)
             return &rv64i_instructions[i];
 
+    extern instr_def_t m_instructions[];
+    extern size_t num_m_instructions;
+
+    for (size_t i = 0; i < num_m_instructions; i++)
+        if (strcmp(m_instructions[i].mnemonic, mnemonic) == 0)
+            return &m_instructions[i];
+
     extern instr_def_t zicsr_instructions[];
     extern size_t num_zicsr_instructions;
 

@@ -2,10 +2,59 @@
 #include "instruction_defs.h"
 #include "encoder.h"
 #include "riscv_instructions.h"
+#include <ctype.h>
+#include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 
 extern int find_label(const char *name, uint32_t *address);
+
+int is_number(const char *str) {
+    if (*str == '-' || *str == '+')
+        str++;
+
+    if (*str == '\0')
+        return 0;
+
+    while (*str) {
+        if (!isdigit(*str) && *str != 'x' && !isxdigit(*str))
+            return 0;
+        str++;
+    }
+    return 1;
+}
+
+int parse_number(const char *str) {
+    return (int)strtol(str, NULL, 0);  // supports decimal & 0x hex
+}
+
+typedef struct {
+    const char *name;
+    uint16_t addr;
+} csr_def_t;
+
+csr_def_t csr_table[] = {
+    {"mtvec",  0x305},
+    {"mepc",   0x341},
+    {"mcause", 0x342},
+    {"mtval",  0x343},
+};
+
+#define NUM_CSR (sizeof(csr_table)/sizeof(csr_table[0]))
+
+int lookup_csr(const char *name, uint16_t *out) {
+    for (int i = 0; i < NUM_CSR; i++) {
+        if (strcmp(name, csr_table[i].name) == 0) {
+            *out = csr_table[i].addr;
+            return 1;
+        }
+    }
+    return 0;
+}
+
+void error(const char *msg) {
+    printf("Error: %s\n", msg);
+}
 
 // ==================== ENCODING FUNCTIONS ====================
 static uint32_t encode_dispatch(const instr_def_t *def, const void *args) {
@@ -67,14 +116,32 @@ static int parse_dispatch(const instr_def_t *def, const char *line, void *args)
                 return 1;
                 }
             else if (def->funct3 == 1 || def->funct3 == 2 || def->funct3 == 3) {
+                    char csr[32];
                     // CSR register form
-                    // csrrw rd,offset,rs1                       //csr
-                    return sscanf(line, "x%d, %i, x%d", &a->rd, &a->imm, &a->rs1);
+                    // csrrw rd,offset,rs1
+                    int ret = sscanf(line,"x%d, %31[^,], x%d", &a->rd, csr, &a->rs1);
+                        if (ret == 3) {
+                            if (is_number(csr)) {
+                                a->imm = parse_number(csr);
+                        } else if (!lookup_csr(csr, (uint16_t*)&a->imm)) {
+                                error("Unknown CSR");
+                            }
+                        }
+                    return ret;
                 }
             else if (def->funct3 == 5 || def->funct3 == 6 || def->funct3 == 7) {
+                    char csr[32];
                     // CSR immediate form
-                    // csrrwi rd,offset,uimm                   //csr     //uimm
-                    return sscanf(line, "x%d, %i, %d", &a->rd, &a->imm, &a->rs1);
+                    // csrrwi rd,offset,uimm                          //uimm
+                    int ret = sscanf(line,"x%d, %31[^,], %d", &a->rd, csr, &a->rs1);
+                    if (ret == 3) {
+                        if (is_number(csr)) {
+                            a->imm = parse_number(csr);
+                    } else if (!lookup_csr(csr, (uint16_t*)&a->imm)) {
+                            error("Unknown CSR");
+                    }
+                }
+        return ret;
                 }
             }
 
@@ -241,6 +308,27 @@ instr_def_t rv64i_instructions[] = {
 
 
 };
+// M Extension
+instr_def_t m_instructions[] = {
+
+    /* ----------- R-Type (RV32 + RV64) ----------- */
+    {"mul",    TYPE_R, 0x33, 0b000, 0x01, 0, ISA_EXT_M, encode_dispatch, parse_dispatch},
+    {"mulh",   TYPE_R, 0x33, 0b001, 0x01, 0, ISA_EXT_M, encode_dispatch, parse_dispatch},
+    {"mulhsu", TYPE_R, 0x33, 0b010, 0x01, 0, ISA_EXT_M, encode_dispatch, parse_dispatch},
+    {"mulhu",  TYPE_R, 0x33, 0b011, 0x01, 0, ISA_EXT_M, encode_dispatch, parse_dispatch},
+    {"div",    TYPE_R, 0x33, 0b100, 0x01, 0, ISA_EXT_M, encode_dispatch, parse_dispatch},
+    {"divu",   TYPE_R, 0x33, 0b101, 0x01, 0, ISA_EXT_M, encode_dispatch, parse_dispatch},
+    {"rem",    TYPE_R, 0x33, 0b110, 0x01, 0, ISA_EXT_M, encode_dispatch, parse_dispatch},
+    {"remu",   TYPE_R, 0x33, 0b111, 0x01, 0, ISA_EXT_M, encode_dispatch, parse_dispatch},
+
+    /* ----------- RV64 Only (Word ops) ----------- */
+    {"mulw",   TYPE_R, 0x3B, 0b000, 0x01, 0, ISA_EXT_M, encode_dispatch, parse_dispatch},
+    {"divw",   TYPE_R, 0x3B, 0b100, 0x01, 0, ISA_EXT_M, encode_dispatch, parse_dispatch},
+    {"divuw",  TYPE_R, 0x3B, 0b101, 0x01, 0, ISA_EXT_M, encode_dispatch, parse_dispatch},
+    {"remw",   TYPE_R, 0x3B, 0b110, 0x01, 0, ISA_EXT_M, encode_dispatch, parse_dispatch},
+    {"remuw",  TYPE_R, 0x3B, 0b111, 0x01, 0, ISA_EXT_M, encode_dispatch, parse_dispatch},
+};
+
 // Zicsr Extension (not complete)
 instr_def_t zicsr_instructions[] = {
     // ecall / ebreak / mret
@@ -259,7 +347,9 @@ instr_def_t zicsr_instructions[] = {
 
 size_t num_rv32i_instructions = sizeof(rv32i_instructions) / sizeof(rv32i_instructions[0]);
 size_t num_rv64i_instructions = sizeof(rv64i_instructions)/sizeof(rv64i_instructions[0]);
+size_t num_m_instructions = sizeof(m_instructions)/sizeof(m_instructions[0]);
 size_t num_zicsr_instructions = sizeof(zicsr_instructions)/sizeof(zicsr_instructions[0]);
 #define NUM_RV32I_INSTRUCTIONS (sizeof(rv32i_instructions) / sizeof(rv32i_instructions[0]))
 #define NUM_RV64I_INSTRUCTIONS (sizeof(rv64i_instructions) / sizeof(rv64i_instructions[0]))
-#define NUM_ZICSR_INSTRUCTIONS = sizeof(zicsr_instructions)/sizeof(zicsr_instructions[0]);
+#define NUM_M_INSTRUCTIONS (sizeof(m_instructions)/sizeof(m_instructions[0]))
+#define NUM_ZICSR_INSTRUCTIONS (sizeof(zicsr_instructions)/sizeof(zicsr_instructions[0]))
