@@ -34,10 +34,14 @@ typedef struct {
 } csr_def_t;
 
 csr_def_t csr_table[] = {
+    {"mstatus", 0x300},
+    {"misa", 0x301},
+    {"mie", 0x304},
     {"mtvec",  0x305},
     {"mepc",   0x341},
     {"mcause", 0x342},
     {"mtval",  0x343},
+    {"mip", 0x344}
 };
 
 #define NUM_CSR (sizeof(csr_table)/sizeof(csr_table[0]))
