@@ -55,6 +55,9 @@ int main(int argc, char *argv[])
     while (fgets(line, sizeof(line), asm_file)) {
         line[strcspn(line, "\n")] = 0; // remove newline
 
+        char *comment = strchr(line, '#');
+        if (comment) *comment = '\0';
+
         char *ptr = line;
         while (isspace(*ptr)) ptr++;  // trim leading space
         if (*ptr == '\0' || *ptr == '#') continue; // skip empty/comment lines
@@ -82,6 +85,8 @@ int main(int argc, char *argv[])
     /* ---------------------- Second pass: encode instructions ---------------------- */
     while (fgets(line, sizeof(line), asm_file)) {
         line[strcspn(line, "\n")] = 0;
+        char *comment = strchr(line, '#');
+        if (comment) *comment = '\0';
         strcpy(line_copy, line);
 
         char *ptr = line;
